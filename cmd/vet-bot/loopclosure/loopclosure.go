@@ -72,26 +72,6 @@ func inspectBody(n ast.Node, outerVars []LoopVar, pass *analysis.Pass) {
 		return
 	}
 
-	inspectFuncLit := func(lit *ast.FuncLit) {
-		ast.Inspect(lit.Body, func(n ast.Node) bool {
-			id, ok := n.(*ast.Ident)
-			if !ok || id.Obj == nil {
-				return true
-			}
-			if id.Obj != nil && id.Obj.Kind != ast.Var {
-				// Identifier is not referring to a variable
-				return true
-			}
-			for _, v := range loopVars {
-				if v.ident.Obj == id.Obj {
-					pass.ReportRangef(v.body, "loop variable %s captured by func literal",
-						id.Name)
-				}
-			}
-			return true
-		})
-	}
-
 	if body == nil || len(body.List) == 0 {
 		return
 	}
@@ -99,11 +79,11 @@ func inspectBody(n ast.Node, outerVars []LoopVar, pass *analysis.Pass) {
 		switch s := stmt.(type) {
 		case *ast.GoStmt:
 			if lit, ok := s.Call.Fun.(*ast.FuncLit); ok {
-				inspectFuncLit(lit)
+				ast.Inspect(lit.Body, findLoopVar(loopVars, pass))
 			}
 		case *ast.DeferStmt:
 			if lit, ok := s.Call.Fun.(*ast.FuncLit); ok {
-				inspectFuncLit(lit)
+				ast.Inspect(lit.Body, findLoopVar(loopVars, pass))
 			}
 
 		// recurse into nested loops as well and perform the same check.
@@ -116,5 +96,27 @@ func inspectBody(n ast.Node, outerVars []LoopVar, pass *analysis.Pass) {
 		case *ast.SwitchStmt:
 			inspectBody(s, loopVars, pass)
 		}
+	}
+}
+
+func findLoopVar(loopVars []LoopVar, pass *analysis.Pass) func(ast.Node) bool {
+	return func(n ast.Node) bool {
+		switch id := n.(type) {
+		case *ast.Ident:
+			if id.Obj != nil && id.Obj.Kind != ast.Var {
+				// Identifier is not referring to a variable
+				return true
+			}
+			for _, v := range loopVars {
+				if v.ident.Obj == id.Obj {
+					pass.ReportRangef(v.body, "loop variable %s captured by func literal",
+						id.Name)
+				}
+			}
+		case *ast.KeyValueExpr:
+			ast.Inspect(id.Value, findLoopVar(loopVars, pass))
+			return false
+		}
+		return true
 	}
 }
