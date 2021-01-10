@@ -64,31 +64,30 @@ func (ir *IssueReporter) ReportVetResult(result VetResult) {
 	}
 	ir.md5s[md5Sum] = struct{}{}
 
-	// TODO: we can't make this non-blocking until proteus can return an sql.Result
-	//       async usage here causes a race-condition in persistResult with last_insert_rowid()
-	/*ir.bot.wg.Add(1)
-	go func(result VetResult) {*/
-	var (
-		iss *github.Issue
-		err error
-	)
-	if shouldReportToGithub(result.FilePath) {
-		issueRequest := CreateIssueRequest(result)
-		iss, _, err = ir.bot.client.CreateIssue(ir.owner, ir.repo, &issueRequest)
-		if err != nil {
-			log.Printf("error opening new issue: %v", err)
-			return
+	ir.bot.wg.Add(1)
+	go func(result VetResult) {
+		var (
+			iss *github.Issue
+			err error
+		)
+		if shouldReportToGithub(result.FilePath) {
+			issueRequest := CreateIssueRequest(result)
+			iss, _, err = ir.bot.client.CreateIssue(ir.owner, ir.repo, &issueRequest)
+			if err != nil {
+				log.Printf("error opening new issue: %v", err)
+				return
+			}
 		}
-	}
 
-	ir.persistResult(result, iss, md5Sum)
-	log.Printf("opened new issue at %s", iss.GetHTMLURL())
-	/*ir.bot.wg.Done()
-	}(result)*/
+		ir.persistResult(result, iss, md5Sum)
+		ir.bot.wg.Done()
+	}(result)
 }
 
 func shouldReportToGithub(filepath string) bool {
-	if strings.HasSuffix(filepath, "_test.go") || strings.HasPrefix(filepath, "vendor/") {
+	if strings.HasSuffix(filepath, "_test.go") ||
+		strings.Contains(filepath, "vendor/") ||
+		strings.Contains(filepath, "test/") {
 		return false
 	}
 	return true
@@ -97,7 +96,7 @@ func shouldReportToGithub(filepath string) bool {
 // persistResult writes the provided VetResult and github.Issue to the database (if the issue is non-nil).
 // It is not thread-safe (yet).
 func (ir *IssueReporter) persistResult(result VetResult, issue *github.Issue, md5Sum [16]byte) error {
-	_, err := db.FindingDAO.Create(context.Background(), ir.bot.db, db.Finding{
+	createResult, err := db.FindingDAO.Create(context.Background(), ir.bot.db, db.Finding{
 		GithubOwner:  result.Owner,
 		GithubRepo:   result.Repo,
 		Filepath:     result.FilePath,
@@ -112,7 +111,7 @@ func (ir *IssueReporter) persistResult(result VetResult, issue *github.Issue, md
 	if err != nil {
 		return fmt.Errorf("error persisting finding: %w", err)
 	}
-	findingID, err := db.LastInsertID(ir.bot.db) // TODO: not this;
+	findingID, err := createResult.LastInsertId()
 	if err != nil {
 		return fmt.Errorf("error retrieving finding ID: %w", err)
 	}
@@ -129,6 +128,7 @@ func (ir *IssueReporter) persistResult(result VetResult, issue *github.Issue, md
 	if err != nil {
 		return fmt.Errorf("error persisting issue: %w", err)
 	}
+	log.Printf("opened new issue at %s", issue.GetHTMLURL())
 	return nil
 }
 

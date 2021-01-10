@@ -2,8 +2,9 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
-	"github.com/jonbodner/proteus"
+	"github.com/kalexmills/proteus"
 )
 
 type Gopher struct {
@@ -13,7 +14,7 @@ type Gopher struct {
 }
 
 type GopherDAOImpl struct {
-	Upsert         func(ctx context.Context, q proteus.ContextExecutor, g Gopher) (int64, error)        `proq:"q:upsert" prop:"g"`
+	Upsert         func(ctx context.Context, q proteus.ContextExecutor, g Gopher) (sql.Result, error)   `proq:"q:upsert" prop:"g"`
 	FindByUsername func(ctx context.Context, q proteus.ContextQuerier, username string) (Gopher, error) `proq:"q:findByUsername" prop:"username"`
 }
 

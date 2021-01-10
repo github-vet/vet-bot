@@ -2,8 +2,9 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
-	"github.com/jonbodner/proteus"
+	"github.com/kalexmills/proteus"
 )
 
 // Expert is a GitHub user marked as an expert
@@ -13,7 +14,7 @@ type Expert struct {
 }
 
 type ExpertDAOImpl struct {
-	Upsert         func(ctx context.Context, q proteus.ContextExecutor, e Expert) (int64, error)        `proq:"q:upsert" prop:"e"`
+	Upsert         func(ctx context.Context, q proteus.ContextExecutor, e Expert) (sql.Result, error)   `proq:"q:upsert" prop:"e"`
 	FindByUsername func(ctx context.Context, q proteus.ContextQuerier, username string) (Expert, error) `proq:"q:findByUsername" prop:"username"`
 }
 

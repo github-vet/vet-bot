@@ -3,9 +3,8 @@ package db
 import (
 	"context"
 	"database/sql"
-	"errors"
 
-	"github.com/jonbodner/proteus"
+	"github.com/kalexmills/proteus"
 )
 
 type Finding struct {
@@ -25,9 +24,9 @@ type Finding struct {
 type Md5Sum []byte
 
 type FindingDaoImpl struct {
-	Create        func(ctx context.Context, e proteus.ContextExecutor, f Finding) (int64, error) `proq:"q:create" prop:"f"`
-	FindByID      func(ctx context.Context, q proteus.ContextQuerier, id int64) (Finding, error) `proq:"q:findById" prop:"id"`
-	ListChecksums func(ctx context.Context, q proteus.ContextQuerier) ([]Md5Sum, error)          `proq:"q:listChecksums"`
+	Create        func(ctx context.Context, e proteus.ContextExecutor, f Finding) (sql.Result, error) `proq:"q:create" prop:"f"`
+	FindByID      func(ctx context.Context, q proteus.ContextQuerier, id int64) (Finding, error)      `proq:"q:findById" prop:"id"`
+	ListChecksums func(ctx context.Context, q proteus.ContextQuerier) ([]Md5Sum, error)               `proq:"q:listChecksums"`
 }
 
 var FindingDAO FindingDaoImpl
@@ -45,19 +44,4 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-// LastInsertID retrieves the last insert ID. Its use is prone to race-conditions in case multiple
-// queries are being executed simultaneously.
-func LastInsertID(db *sql.DB) (int, error) {
-	rows, err := db.Query("SELECT last_insert_rowid()")
-	if err != nil {
-		return 0, err
-	}
-	for rows.Next() {
-		var result int
-		rows.Scan(&result)
-		return result, nil
-	}
-	return 0, errors.New("query resulted in zero rows")
 }

@@ -2,8 +2,9 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
-	"github.com/jonbodner/proteus"
+	"github.com/kalexmills/proteus"
 )
 
 type Repository struct {
@@ -31,7 +32,7 @@ func stringToRepoState(str string) RepoState {
 type RepositoryDaoImpl struct {
 	FindByID    func(ctx context.Context, q proteus.ContextQuerier, owner, repo string) (Repository, error) `proq:"q:findByID" prop:"owner,repo"`
 	ListByState func(ctx context.Context, q proteus.ContextQuerier, state RepoState) ([]Repository, error)  `proq:"q:listByState" prop:"state"`
-	Upsert      func(ctx context.Context, e proteus.ContextExecutor, r Repository) (int64, error)           `proq:"q:upsert" prop:"r"`
+	Upsert      func(ctx context.Context, e proteus.ContextExecutor, r Repository) (sql.Result, error)      `proq:"q:upsert" prop:"r"`
 	CountAll    func(ctx context.Context, q proteus.ContextQuerier) (int64, error)                          `proq:"q:count"`
 }
 

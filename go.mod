@@ -5,7 +5,8 @@ go 1.15
 require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v32 v32.1.0
-	github.com/jonbodner/proteus v0.13.0
+	github.com/jonbodner/proteus v0.13.0 // indirect
+	github.com/kalexmills/proteus v0.13.3
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/oauth2 v0.0.0-20201109201403-9fd604954f58

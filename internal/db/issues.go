@@ -2,12 +2,13 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
-	"github.com/jonbodner/proteus"
+	"github.com/kalexmills/proteus"
 )
 
 type Issue struct {
-	FindingID          int    `prof:"finding_id"`
+	FindingID          int64  `prof:"finding_id"`
 	GithubOwner        string `prof:"github_owner"`
 	GithubRepo         string `prof:"github_repo"`
 	GithubID           int    `prof:"github_id"`
@@ -29,7 +30,7 @@ func (i *Issue) SetExpertsDisagree(value bool) {
 
 type IssueDAOImpl struct {
 	FindByCoordinates func(ctx context.Context, q proteus.ContextQuerier, owner, repo string, githubID int) (Issue, error) `proq:"q:findByFindingID" prop:"owner,repo,githubID"`
-	Upsert            func(ctx context.Context, q proteus.ContextExecutor, i Issue) (int64, error)                         `proq:"q:upsert" prop:"i"`
+	Upsert            func(ctx context.Context, q proteus.ContextExecutor, i Issue) (sql.Result, error)                    `proq:"q:upsert" prop:"i"`
 }
 
 var IssueDAO IssueDAOImpl

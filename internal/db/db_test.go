@@ -43,13 +43,15 @@ func TestMain(m *testing.M) {
 func TestIssueDAO(t *testing.T) {
 	ctx := context.Background()
 
-	count, err := db.IssueDAO.Upsert(ctx, DB, db.Issue{
+	result, err := db.IssueDAO.Upsert(ctx, DB, db.Issue{
 		GithubOwner: "test",
 		GithubRepo:  "123",
 		GithubID:    2,
 	})
-	assert.EqualValues(t, 1, count)
 	assert.NoError(t, err)
+	count, err := result.RowsAffected()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, count)
 
 	issue, err := db.IssueDAO.FindByCoordinates(ctx, DB, "test", "123", 2)
 	assert.NoError(t, err)
@@ -61,7 +63,11 @@ func TestIssueDAO(t *testing.T) {
 
 	issue.ExpertAssessment = "confused"
 	issue.SetExpertsDisagree(true)
-	count, err = db.IssueDAO.Upsert(ctx, DB, issue)
+	result, err = db.IssueDAO.Upsert(ctx, DB, issue)
+	assert.NoError(t, err)
+	count, err = result.RowsAffected()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, count)
 
 	issue, err = db.IssueDAO.FindByCoordinates(ctx, DB, "test", "123", 2)
 	assert.NoError(t, err)
@@ -72,9 +78,11 @@ func TestIssueDAO(t *testing.T) {
 func TestRepositoryDAO(t *testing.T) {
 	ctx := context.Background()
 
-	count, err := db.RepositoryDAO.Upsert(ctx, DB, db.NewRepository("test", "123"))
-	assert.EqualValues(t, 1, count)
+	result, err := db.RepositoryDAO.Upsert(ctx, DB, db.NewRepository("test", "123"))
 	assert.NoError(t, err)
+	count, err := result.RowsAffected()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, count)
 
 	repo, err := db.RepositoryDAO.FindByID(ctx, DB, "test", "123")
 	assert.NoError(t, err)
@@ -83,7 +91,9 @@ func TestRepositoryDAO(t *testing.T) {
 	assert.Equal(t, db.RepoStateFresh, repo.State)
 
 	repo.State = db.RepoStateVisited
-	count, err = db.RepositoryDAO.Upsert(ctx, DB, repo)
+	result, err = db.RepositoryDAO.Upsert(ctx, DB, repo)
+	assert.NoError(t, err)
+	count, err = result.RowsAffected()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
@@ -91,9 +101,11 @@ func TestRepositoryDAO(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, db.RepoStateVisited, repo.State)
 
-	count, err = db.RepositoryDAO.Upsert(ctx, DB, db.NewRepository("test", "456"))
-	assert.EqualValues(t, 1, count)
+	result, err = db.RepositoryDAO.Upsert(ctx, DB, db.NewRepository("test", "456"))
 	assert.NoError(t, err)
+	count, err = result.RowsAffected()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, count)
 
 	visitedRepos, err := db.RepositoryDAO.ListByState(ctx, DB, db.RepoStateVisited)
 	assert.NoError(t, err)
@@ -110,9 +122,11 @@ func TestRepositoryDAO(t *testing.T) {
 func TestGopherDAO(t *testing.T) {
 	ctx := context.Background()
 
-	count, err := db.GopherDAO.Upsert(ctx, DB, db.Gopher{Username: "kalexmills"})
-	assert.EqualValues(t, 1, count)
+	result, err := db.GopherDAO.Upsert(ctx, DB, db.Gopher{Username: "kalexmills"})
 	assert.NoError(t, err)
+	count, err := result.RowsAffected()
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count)
 
 	g, err := db.GopherDAO.FindByUsername(ctx, DB, "kalexmills")
 	assert.NoError(t, err)
@@ -122,9 +136,11 @@ func TestGopherDAO(t *testing.T) {
 
 	g.AssessmentCount = 2
 	g.DisagreementCount = 5
-	count, err = db.GopherDAO.Upsert(ctx, DB, g)
-	assert.EqualValues(t, 1, count)
+	result, err = db.GopherDAO.Upsert(ctx, DB, g)
 	assert.NoError(t, err)
+	count, err = result.RowsAffected()
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count)
 
 	g, err = db.GopherDAO.FindByUsername(ctx, DB, "kalexmills")
 	assert.NoError(t, err)
@@ -137,7 +153,7 @@ func TestFindingDAO(t *testing.T) {
 
 	hash := md5.Sum([]byte("quote"))
 
-	count, err := db.FindingDAO.Create(ctx, DB, db.Finding{
+	result, err := db.FindingDAO.Create(ctx, DB, db.Finding{
 		GithubOwner:  "owner",
 		GithubRepo:   "repo",
 		Filepath:     "filepath",
@@ -150,13 +166,14 @@ func TestFindingDAO(t *testing.T) {
 		ExtraInfo:    "extra",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), count)
-
-	id, err := db.LastInsertID(DB)
+	count, err := result.RowsAffected()
 	assert.NoError(t, err)
-	assert.Equal(t, 1, id)
+	assert.Equal(t, int64(1), count)
+	id, err := result.LastInsertId()
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), id)
 
-	count, err = db.FindingDAO.Create(ctx, DB, db.Finding{
+	result, err = db.FindingDAO.Create(ctx, DB, db.Finding{
 		GithubOwner:  "owner",
 		GithubRepo:   "repo",
 		Filepath:     "filepath",
@@ -169,11 +186,12 @@ func TestFindingDAO(t *testing.T) {
 		ExtraInfo:    "extra",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), count)
-
-	id, err = db.LastInsertID(DB)
+	count, err = result.RowsAffected()
 	assert.NoError(t, err)
-	assert.Equal(t, 2, id)
+	assert.Equal(t, int64(1), count)
+	id, err = result.LastInsertId()
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), id)
 
 	f, err := db.FindingDAO.FindByID(ctx, DB, 1)
 	assert.NoError(t, err)
